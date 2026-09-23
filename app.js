@@ -1,5 +1,5 @@
 /* Nile Accounting Online: data lives in Supabase (Postgres). See config.js for connection settings. */
-const supabase = window.supabase.createClient(window.NILE_CONFIG.SUPABASE_URL, window.NILE_CONFIG.SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(window.NILE_CONFIG.SUPABASE_URL, window.NILE_CONFIG.SUPABASE_ANON_KEY);
 const S={page:'dashboard',user:null,data:{users:[],students:[],trainers:[],courses:[],enrollments:[],payments:[],expenses:[],auditLogs:[],settings:{}},selected:null,dashboardCourse:''};
 const $=s=>document.querySelector(s), today=()=>new Date().toISOString().slice(0,10);
 const esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -11,11 +11,11 @@ const canManage=()=>['Admin','Manager'].includes(S.user?.role),canDelete=()=>can
 const TABLE={users:'users',students:'students',trainers:'trainers',courses:'courses',enrollments:'enrollments',payments:'payments',expenses:'expenses',auditLogs:'audit_logs',settings:'settings'};
 const PK={settings:'key'};
 const pk=store=>PK[store]||'id';
-async function all(store){const {data,error}=await supabase.from(TABLE[store]).select('*');if(error)throw error;return data||[]}
-async function get(store,key){const {data,error}=await supabase.from(TABLE[store]).select('*').eq(pk(store),key).maybeSingle();if(error)throw error;return data||undefined}
-async function put(store,x){const {data,error}=await supabase.from(TABLE[store]).upsert(x,{onConflict:pk(store)}).select().maybeSingle();if(error)throw error;return data||x}
-async function del(store,key){const {error}=await supabase.from(TABLE[store]).delete().eq(pk(store),key);if(error)throw error}
-async function replaceStore(store,rows){const table=TABLE[store],key=pk(store);const {error:delErr}=await supabase.from(table).delete().neq(key,'__never__');if(delErr)throw delErr;if(rows.length){const {error}=await supabase.from(table).insert(rows);if(error)throw error}}
+async function all(store){const {data,error}=await sb.from(TABLE[store]).select('*');if(error)throw error;return data||[]}
+async function get(store,key){const {data,error}=await sb.from(TABLE[store]).select('*').eq(pk(store),key).maybeSingle();if(error)throw error;return data||undefined}
+async function put(store,x){const {data,error}=await sb.from(TABLE[store]).upsert(x,{onConflict:pk(store)}).select().maybeSingle();if(error)throw error;return data||x}
+async function del(store,key){const {error}=await sb.from(TABLE[store]).delete().eq(pk(store),key);if(error)throw error}
+async function replaceStore(store,rows){const table=TABLE[store],key=pk(store);const {error:delErr}=await sb.from(table).delete().neq(key,'__never__');if(delErr)throw delErr;if(rows.length){const {error}=await sb.from(table).insert(rows);if(error)throw error}}
 function id(prefix, rows){return prefix+'-'+String(rows.reduce((m,x)=>Math.max(m,Number(String(x.id).split('-')[1])||0),0)+1).padStart(4,'0')}
 async function hash(password,salt){const b=new TextEncoder(), key=await crypto.subtle.importKey('raw',b.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:b.encode(salt),iterations:120000,hash:'SHA-256'},key,256);return [...new Uint8Array(bits)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 
